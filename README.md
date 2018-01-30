@@ -25,3 +25,10 @@ For third_party/forked/datastream/aws(github.com/datastream/aws)
 
 Copyright (c) 2014, Xianjie
 All rights reserved.
+
+
+========================================================================
+For vendor/github.com/ServiceComb/auth/third_party/forked/datastream/aws:
+========================================================================
+
+See licenses/LICENSE-datastream-aws
