@@ -33,4 +33,4 @@ For vendor/github.com/ServiceComb/auth/third_party/forked/datastream/aws:
 
 ========================================================================
 
-See licenses/LICENSE-datastream-aws
+See third_party/forked/datastream/aws/LICENSE
