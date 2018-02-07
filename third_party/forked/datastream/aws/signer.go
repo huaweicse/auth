@@ -1,5 +1,6 @@
 package hwscloud
-
+// Forked from github.com/datastream/aws
+// Some parts of this file have been modified to make it functional in this package
 import (
 	"bytes"
 	"crypto/hmac"
