@@ -16,7 +16,9 @@ const (
 	HeaderServiceProject = "X-Service-Project"
 )
 
-var globalAuthFunc func(*http.Request) error
+type AuthFunc func(*http.Request) error
+
+var globalAuthFunc AuthFunc
 
 // AddAuthInfo adds auth info into request
 func AddAuthInfo(r *http.Request) error {
@@ -37,17 +39,49 @@ func UseAKSKAuth(ak, sk, project string) error {
 		Region:    "",
 	}
 
-	shaAKSK, err := genShaAKSK(sk, ak)
+	shaakskAuthFunc, err := newShaAKSKAuthFunc(ak, sk, project)
 	if err != nil {
 		return err
 	}
 
 	globalAuthFunc = func(r *http.Request) error {
+		if r.Header == nil {
+			r.Header = make(http.Header)
+		}
+		if err := shaakskAuthFunc(r); err != nil {
+			return err
+		}
+		return s.Sign(r)
+	}
+	return nil
+}
+
+func newShaAKSKAuthFunc(ak, sk, project string) (AuthFunc, error) {
+	shaAKSK, err := genShaAKSK(sk, ak)
+	if err != nil {
+		return nil, err
+	}
+
+	f := func(r *http.Request) error {
+		if r.Header == nil {
+			r.Header = make(http.Header)
+		}
 		r.Header.Set(HeaderServiceAk, ak)
 		r.Header.Set(HeaderServiceShaAKSK, shaAKSK)
 		r.Header.Set(HeaderServiceProject, project)
-		return s.Sign(r)
+		return nil
 	}
+	return f, nil
+}
+
+// UseShaAKSKAuth sets and initializes the ak/sk auth func
+func UseShaAKSKAuth(ak, sk, project string) error {
+	shaakskAuthFunc, err := newShaAKSKAuthFunc(ak, sk, project)
+	if err != nil {
+		return err
+	}
+
+	globalAuthFunc = shaakskAuthFunc
 	return nil
 }
 
