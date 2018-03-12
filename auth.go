@@ -16,6 +16,7 @@ const (
 	HeaderServiceProject = "X-Service-Project"
 )
 
+//AuthFunc is a type
 type AuthFunc func(*http.Request) error
 
 var globalAuthFunc AuthFunc
