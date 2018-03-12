@@ -1,5 +1,5 @@
 ### Authentication Plugin for Go-Chassis
-
+[![Build Status](https://travis-ci.org/ServiceComb/auth.svg?branch=master)](https://travis-ci.org/ServiceComb/auth)
 This plugin provides the authentication mechanism for Huawei Public Cloud.
 The authentication mechanism can be either AK/SK based or token based.
 Based on the type this plugin appends the signed auth token or AK/SK in the header of 
