@@ -29,7 +29,7 @@ All rights reserved.
 
 ========================================================================
 
-For vendor/github.com/ServiceComb/auth/third_party/forked/datastream/aws:
+For vendor/github.com/huaweicse/auth/third_party/forked/datastream/aws:
 
 ========================================================================
 
