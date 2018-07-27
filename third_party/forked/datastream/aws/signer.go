@@ -1,5 +1,7 @@
 package hwscloud
 
+// Forked from github.com/datastream/aws
+// Some parts of this file have been modified to make it functional in this package
 import (
 	"bytes"
 	"crypto/hmac"
@@ -76,7 +78,7 @@ func CanonicalURI(r *http.Request) string {
 	if ok := strings.HasSuffix(r.URL.Path, "/"); !ok {
 		appendExtraSlash = "/"
 	}
-	return fmt.Sprintf("%s", r.URL.Path + appendExtraSlash)
+	return fmt.Sprintf("%s", r.URL.Path+appendExtraSlash)
 }
 
 // CanonicalQueryString returns uri with query parameteres
