@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	hws_cloud "github.com/ServiceComb/auth/third_party/forked/datastream/aws"
+	hws_cloud "github.com/huaweicse/auth/third_party/forked/datastream/aws"
 )
 
 // Headers for ak/sk auth
@@ -16,23 +16,11 @@ const (
 	HeaderServiceProject = "X-Service-Project"
 )
 
-//AuthFunc is a type
-type AuthFunc func(*http.Request) error
-
-var globalAuthFunc AuthFunc
-
-// AddAuthInfo adds auth info into request
-func AddAuthInfo(r *http.Request) error {
-	return globalAuthFunc(r)
-}
-
-// SetAuthFunc sets a custom auth func
-func SetAuthFunc(f func(*http.Request) error) {
-	globalAuthFunc = f
-}
+//SignRequest inject auth related header and sign this request so that this request can access to huawei cloud
+type SignRequest func(*http.Request) error
 
 // UseAKSKAuth sets and initializes the ak/sk auth func
-func UseAKSKAuth(ak, sk, project string) error {
+func UseAKSKAuth(ak, sk, project string) (SignRequest, error) {
 	s := &hws_cloud.Signer{
 		AccessKey: ak,
 		SecretKey: sk,
@@ -40,50 +28,17 @@ func UseAKSKAuth(ak, sk, project string) error {
 		Region:    "",
 	}
 
-	shaakskAuthFunc, err := newShaAKSKAuthFunc(ak, sk, project)
-	if err != nil {
-		return err
-	}
-
-	globalAuthFunc = func(r *http.Request) error {
-		if r.Header == nil {
-			r.Header = make(http.Header)
-		}
-		if err := shaakskAuthFunc(r); err != nil {
-			return err
-		}
-		return s.Sign(r)
-	}
-	return nil
-}
-
-func newShaAKSKAuthFunc(ak, sk, project string) (AuthFunc, error) {
 	shaAKSK, err := genShaAKSK(sk, ak)
 	if err != nil {
 		return nil, err
 	}
 
-	f := func(r *http.Request) error {
-		if r.Header == nil {
-			r.Header = make(http.Header)
-		}
+	return func(r *http.Request) error {
 		r.Header.Set(HeaderServiceAk, ak)
 		r.Header.Set(HeaderServiceShaAKSK, shaAKSK)
 		r.Header.Set(HeaderServiceProject, project)
-		return nil
-	}
-	return f, nil
-}
-
-// UseShaAKSKAuth sets and initializes the ak/sk auth func
-func UseShaAKSKAuth(ak, sk, project string) error {
-	shaakskAuthFunc, err := newShaAKSKAuthFunc(ak, sk, project)
-	if err != nil {
-		return err
-	}
-
-	globalAuthFunc = shaakskAuthFunc
-	return nil
+		return s.Sign(r)
+	}, nil
 }
 
 func genShaAKSK(key string, data string) (string, error) {
@@ -97,8 +52,4 @@ func genShaAKSK(key string, data string) (string, error) {
 		shaaksk = shaaksk + fmt.Sprintf("%02x", j)
 	}
 	return shaaksk, nil
-}
-
-func init() {
-	globalAuthFunc = func(*http.Request) error { return nil }
 }
