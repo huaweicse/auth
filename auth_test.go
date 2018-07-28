@@ -20,7 +20,7 @@ func Test_UseAKSKAuth(t *testing.T) {
 	shaaksk := "02a8ceaa95db6653c6f033759774d3bcc01be6b97da1c4ce218ef2451630eeb5"
 	project := "project1"
 
-	sign, err := UseAKSKAuth(ak, sk, project)
+	sign, err := GetSignFunc(ak, sk, project)
 	assert.NoError(t, err)
 	r, err := http.NewRequest("GET", "http://127.0.0.1:8080", nil)
 	assert.NoError(t, err)
