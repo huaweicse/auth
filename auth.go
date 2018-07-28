@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"errors"
 	hws_cloud "github.com/huaweicse/auth/third_party/forked/datastream/aws"
 )
 
@@ -19,8 +20,10 @@ const (
 //SignRequest inject auth related header and sign this request so that this request can access to huawei cloud
 type SignRequest func(*http.Request) error
 
-// UseAKSKAuth sets and initializes the ak/sk auth func
-func UseAKSKAuth(ak, sk, project string) (SignRequest, error) {
+var ErrAuthConfNotExist = errors.New("auth config is not exist")
+
+// GetSignFunc sets and initializes the ak/sk auth func
+func GetSignFunc(ak, sk, project string) (SignRequest, error) {
 	s := &hws_cloud.Signer{
 		AccessKey: ak,
 		SecretKey: sk,
