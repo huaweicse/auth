@@ -8,10 +8,10 @@ import (
 	"github.com/go-chassis/go-chassis/core/common"
 	"github.com/go-chassis/go-chassis/core/config"
 	"github.com/go-chassis/go-chassis/core/config/model"
-	"github.com/go-chassis/go-chassis/pkg/goplugin"
 	"github.com/go-chassis/go-chassis/core/lager"
+	"github.com/go-chassis/go-chassis/pkg/goplugin"
+	"github.com/go-chassis/go-chassis/pkg/httpclient"
 	"github.com/go-chassis/go-chassis/security"
-	"github.com/go-chassis/http-client"
 	"github.com/huaweicse/auth"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -195,8 +195,11 @@ func loadAkskAuth() error {
 		}
 		plainSk = res
 	}
+	fmt.Println("give sign")
 
 	httpclient.SignRequest, err = auth.GetSignFunc(c.AccessKey, plainSk, c.Project)
+	fmt.Println(httpclient.SignRequest)
+	fmt.Println(err)
 	if err != nil {
 		return err
 	}
