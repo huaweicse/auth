@@ -31,16 +31,34 @@ func GetSignFunc(ak, sk, project string) (SignRequest, error) {
 		Region:    "",
 	}
 
+	shaAKSKSignFunc, err := GetShaAKSKSignFunc(ak, sk, project)
+	if err != nil {
+		return nil, err
+	}
+
+	return func(r *http.Request) error {
+		if err := shaAKSKSignFunc(r); err != nil {
+			return err
+		}
+		return s.Sign(r)
+	}, nil
+}
+
+// GetShaAKSKSignFunc sets and initializes the ak/sk auth func
+func GetShaAKSKSignFunc(ak, sk, project string) (SignRequest, error) {
 	shaAKSK, err := genShaAKSK(sk, ak)
 	if err != nil {
 		return nil, err
 	}
 
 	return func(r *http.Request) error {
+		if r.Header == nil {
+			r.Header = make(http.Header)
+		}
 		r.Header.Set(HeaderServiceAk, ak)
 		r.Header.Set(HeaderServiceShaAKSK, shaAKSK)
 		r.Header.Set(HeaderServiceProject, project)
-		return s.Sign(r)
+		return nil
 	}, nil
 }
 
