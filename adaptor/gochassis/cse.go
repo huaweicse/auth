@@ -195,11 +195,8 @@ func loadAkskAuth() error {
 		}
 		plainSk = res
 	}
-	fmt.Println("give sign")
 
 	httpclient.SignRequest, err = auth.GetSignFunc(c.AccessKey, plainSk, c.Project)
-	fmt.Println(httpclient.SignRequest)
-	fmt.Println(err)
 	if err != nil {
 		return err
 	}
