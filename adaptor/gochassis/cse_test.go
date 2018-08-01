@@ -12,9 +12,9 @@ import (
 	"github.com/go-chassis/go-chassis/core/config"
 	"github.com/go-chassis/go-chassis/core/config/model"
 	"github.com/go-chassis/go-chassis/core/lager"
+	"github.com/go-chassis/go-chassis/pkg/httpclient"
 	_ "github.com/go-chassis/go-chassis/security/plugins/aes"
 	_ "github.com/go-chassis/go-chassis/security/plugins/plain"
-	"github.com/go-chassis/http-client"
 	"github.com/huaweicse/auth"
 	"github.com/stretchr/testify/assert"
 )
