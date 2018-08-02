@@ -20,7 +20,7 @@ import (
 )
 
 func Test_isAuthConfNotExist(t *testing.T) {
-	err := auth.ErrAuthConfNotExist
+	err := errAuthConfNotExist
 	assert.True(t, isAuthConfNotExist(err))
 }
 
