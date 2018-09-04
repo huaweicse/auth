@@ -211,7 +211,7 @@ func Init() error {
 		return nil
 	}
 	if !isAuthConfNotExist(err) {
-		lager.Logger.Error("Load ak/sk failed", err)
+		lager.Logger.Errorf("Load ak/sk failed: %s", err)
 		return err
 	}
 
@@ -221,7 +221,7 @@ func Init() error {
 		return nil
 	}
 	if !isAuthConfNotExist(err) {
-		lager.Logger.Error("Load paas auth failed", err)
+		lager.Logger.Errorf("Load paas auth failed: %s", err)
 		return err
 	}
 	lager.Logger.Warn("No authentication for Huawei Cloud")
