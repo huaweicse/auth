@@ -207,7 +207,7 @@ func loadAkskAuth() error {
 func Init() error {
 	err := loadAkskAuth()
 	if err == nil {
-		lager.Logger.Warn("Huawei Cloud auth mode: ak/sk", nil)
+		lager.Logger.Warn("Huawei Cloud auth mode: ak/sk")
 		return nil
 	}
 	if !isAuthConfNotExist(err) {
@@ -217,7 +217,7 @@ func Init() error {
 
 	err = loadPaasAuth()
 	if err == nil {
-		lager.Logger.Warn("Huawei Cloud auth mode: token", nil)
+		lager.Logger.Warn("Huawei Cloud auth mode: token")
 		return nil
 	}
 	if !isAuthConfNotExist(err) {
