@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/go-chassis/go-chassis/core/archaius"
 	"github.com/go-chassis/go-chassis/core/common"
 	"github.com/go-chassis/go-chassis/core/config"
 	"github.com/go-chassis/go-chassis/core/config/model"
@@ -125,7 +124,7 @@ func Test_loadAkskAuth(t *testing.T) {
 	}
 
 	lager.Initialize("", "INFO", "", "size", true, 1, 10, 7)
-	archaius.Init()
+	config.InitArchaius()
 	config.GlobalDefinition = &model.GlobalCfg{}
 	config.GlobalDefinition.Cse.Service.Registry.Address = uriWithProjectCnNorth
 	testLoadAkskAuth(t)
