@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/huaweicse/auth"
+
 	"github.com/go-chassis/go-chassis/core/common"
 	"github.com/go-chassis/go-chassis/core/config"
 	"github.com/go-chassis/go-chassis/core/config/model"
@@ -14,34 +16,12 @@ import (
 	"github.com/go-chassis/go-chassis/pkg/httpclient"
 	_ "github.com/go-chassis/go-chassis/security/plugins/aes"
 	_ "github.com/go-chassis/go-chassis/security/plugins/plain"
-	"github.com/huaweicse/auth"
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_isAuthConfNotExist(t *testing.T) {
-	err := errAuthConfNotExist
-	assert.True(t, isAuthConfNotExist(err))
-}
-
-func Test_loadPaasAuth(t *testing.T) {
-	utDir := filepath.Join(os.Getenv("GOPATH"), "test")
-	authTestDir := filepath.Join(utDir, "auth")
-	chassisHome := authTestDir
-	libDir := filepath.Join(chassisHome, "lib")
-	os.Setenv("CHASSIS_HOME", chassisHome)
-	os.Remove(filepath.Join(libDir, paasAuthPlugin))
-	err := loadPaasAuth()
-	assert.True(t, isAuthConfNotExist(err))
-
-	// test func nil
-	err = os.MkdirAll(libDir, 0700)
-	assert.NoError(t, err)
-	// Commenting the OS dependent Test_cases
-	// TODO Fix the below test case and make it OS independent
-	/*_, err = os.Create(filepath.Join(libDir, paasAuthPlugin))
-	err = loadPaasAuth()
-	assert.NotNil(t, err)
-	assert.False(t, isAuthConfNotExist(err))*/
+func Test_IsAuthConfNotExist(t *testing.T) {
+	err := ErrAuthConfNotExist
+	assert.True(t, IsAuthConfNotExist(err))
 }
 
 func testWriteFile(t *testing.T, name string, ak, sk, project, cipher string) {
@@ -142,7 +122,7 @@ func Test_loadAkskAuth(t *testing.T) {
 	testWriteFile(t, credentialFilePath, ak, sk, project, cipherName)
 	err = loadAkskAuth()
 	assert.Error(t, err)
-	assert.False(t, isAuthConfNotExist(err))
+	assert.False(t, IsAuthConfNotExist(err))
 	testAuthNotLoaded(t)
 
 	t.Log("Ak sk not exists")
@@ -151,7 +131,7 @@ func Test_loadAkskAuth(t *testing.T) {
 	testWriteFile(t, credentialFilePath, ak, sk, project, cipherName)
 	err = loadAkskAuth()
 	assert.Error(t, err)
-	assert.True(t, isAuthConfNotExist(err))
+	assert.True(t, IsAuthConfNotExist(err))
 	testAuthNotLoaded(t)
 
 	t.Log("AkskCustomCipher exists")
@@ -166,7 +146,7 @@ func Test_loadAkskAuth(t *testing.T) {
 	testWriteFile(t, credentialFilePath, ak, sk, project, cipherName)
 	err = loadAkskAuth()
 	assert.Error(t, err)
-	assert.False(t, isAuthConfNotExist(err))
+	assert.False(t, IsAuthConfNotExist(err))
 	testAuthNotLoaded(t)
 
 	t.Log("Get project from uri")
@@ -182,7 +162,7 @@ func Test_loadAkskAuth(t *testing.T) {
 	config.GlobalDefinition.Cse.Service.Registry.Address = ":://a+b"
 	err = loadAkskAuth()
 	assert.Error(t, err)
-	assert.False(t, isAuthConfNotExist(err))
+	assert.False(t, IsAuthConfNotExist(err))
 	testAuthNotLoaded(t)
 
 	t.Log("Get project from config")
