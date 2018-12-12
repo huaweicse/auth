@@ -3,27 +3,27 @@ package gochassis
 import (
 	"errors"
 	"fmt"
-	"github.com/go-chassis/go-archaius"
-	"github.com/go-chassis/go-chassis/bootstrap"
-	"github.com/go-chassis/go-chassis/core/common"
-	"github.com/go-chassis/go-chassis/core/config"
-	"github.com/go-chassis/go-chassis/core/config/model"
-	"github.com/go-chassis/go-chassis/core/lager"
-	"github.com/go-chassis/go-chassis/pkg/goplugin"
-	"github.com/go-chassis/go-chassis/pkg/httpclient"
-	"github.com/go-chassis/go-chassis/security"
-	"github.com/huaweicse/auth"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/huaweicse/auth"
+
+	"github.com/go-chassis/go-archaius"
+	"github.com/go-chassis/go-chassis/bootstrap"
+	"github.com/go-chassis/go-chassis/core/common"
+	"github.com/go-chassis/go-chassis/core/config"
+	"github.com/go-chassis/go-chassis/core/config/model"
+	"github.com/go-chassis/go-chassis/pkg/httpclient"
+	"github.com/go-chassis/go-chassis/security"
+	"github.com/go-mesh/openlogging"
+	"gopkg.in/yaml.v2"
 )
 
 const (
-	paasAuthPlugin     = "paas_auth.so"
 	paasProjectNameEnv = "PAAS_PROJECT_NAME"
 	cipherRootEnv      = "CIPHER_ROOT"
 	keytoolAkskFile    = "certificate.yaml"
@@ -34,34 +34,29 @@ const (
 	keyProject = "cse.credentials.project"
 )
 
-func isAuthConfNotExist(e error) bool {
-	return e == errAuthConfNotExist
+//IsAuthConfNotExist judges whether an error is equal to ErrAuthConfNotExist
+func IsAuthConfNotExist(e error) bool {
+	return e == ErrAuthConfNotExist
 }
 
-var errAuthConfNotExist = errors.New("auth config is not exist")
+//ErrAuthConfNotExist means the auth config not exist
+var ErrAuthConfNotExist = errors.New("auth config is not exist")
 
 // loadAkskAuth gets the Authentication Mode ak/sk, token and forms required Auth Headers
 func loadPaasAuth() error {
-	p, err := goplugin.LoadPlugin(paasAuthPlugin)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return errAuthConfNotExist
-		}
-		return err
-	}
-
-	f, err := p.Lookup("GenAuthHeaders")
+	h, err := GetAuthHeaderGenerator()
 	if err != nil {
 		return err
 	}
-
-	genAuthHeaders := f.(func() http.Header)
 	projectFromEnv := os.Getenv(paasProjectNameEnv)
+	if projectFromEnv != "" {
+		openlogging.GetLogger().Infof("Huawei cloud project: %s", projectFromEnv)
+	}
 	httpclient.SignRequest = func(r *http.Request) error {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}
-		for k, vs := range genAuthHeaders() {
+		for k, vs := range h.GenAuthHeaders() {
 			for _, v := range vs {
 				r.Header.Add(k, v)
 			}
@@ -99,7 +94,7 @@ func getProjectFromURI(rawurl string) (string, error) {
 	}
 	parts := strings.Split(u.Host, ".")
 	if len(parts) != 4 {
-		lager.Logger.Info("CSE uri contains no project")
+		openlogging.GetLogger().Info("CSE uri contains no project")
 		return "", nil
 	}
 	return parts[1], nil
@@ -139,7 +134,7 @@ func getAkskConfig() (*model.CredentialStruct, error) {
 		c = &(globalConf.Cse.Credentials)
 	}
 	if c.AccessKey == "" && c.SecretKey == "" {
-		return nil, errAuthConfNotExist
+		return nil, ErrAuthConfNotExist
 	}
 	if c.AccessKey == "" || c.SecretKey == "" {
 		return nil, errors.New("ak or sk is empty")
@@ -172,17 +167,13 @@ func loadAkskAuth() error {
 	if err != nil {
 		return err
 	}
-	if c.Project == "" {
-		lager.Logger.Debug("Huawei Cloud project is empty")
-	} else {
-		lager.Logger.Debugf("Huawei Cloud project: %s", c.Project)
-	}
+	openlogging.GetLogger().Infof("Huawei cloud auth AK: %s, project: %s", c.AccessKey, c.Project)
 
 	plainSk := c.SecretKey
 	cipher := c.AkskCustomCipher
 	if cipher != "" {
 		if cipher == keytoolCipher {
-			lager.Logger.Infof("Use cipher plugin [aes] as plugin [%s]", cipher)
+			openlogging.GetLogger().Infof("Use cipher plugin [aes] as plugin [%s]", cipher)
 			cipher = "aes"
 		}
 		cipherPlugin, err := getAkskCustomCipher(cipher)
@@ -197,34 +188,31 @@ func loadAkskAuth() error {
 	}
 
 	httpclient.SignRequest, err = auth.GetShaAKSKSignFunc(c.AccessKey, plainSk, c.Project)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // Init initializes auth module
 func Init() error {
 	err := loadAkskAuth()
 	if err == nil {
-		lager.Logger.Warn("Huawei Cloud auth mode: ak/sk")
+		openlogging.GetLogger().Warn("Huawei Cloud auth mode: AKSK, AKSK source: chassis config")
 		return nil
 	}
-	if !isAuthConfNotExist(err) {
-		lager.Logger.Errorf("Load ak/sk failed: %s", err)
+	if !IsAuthConfNotExist(err) {
+		openlogging.GetLogger().Errorf("Load AKSK failed: %s", err)
 		return err
 	}
 
 	err = loadPaasAuth()
 	if err == nil {
-		lager.Logger.Warn("Huawei Cloud auth mode: token")
+		openlogging.GetLogger().Warn("Huawei Cloud auth mode: AKSK, AKSK source: default secret")
 		return nil
 	}
-	if !isAuthConfNotExist(err) {
-		lager.Logger.Errorf("Load paas auth failed: %s", err)
+	if !IsAuthConfNotExist(err) {
+		openlogging.GetLogger().Errorf("Get AKSK auth from default secret failed: %s", err)
 		return err
 	}
-	lager.Logger.Warn("No authentication for Huawei Cloud")
+	openlogging.GetLogger().Info("No authentication for Huawei Cloud")
 	return nil
 }
 

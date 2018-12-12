@@ -1,14 +1,14 @@
 language: go
 sudo: required
 go: 
-  - 1.8.3
+  - 1.11
 install: true
 
 before_script:
-  - mkdir -p $HOME/gopath/src/github.com/ServiceComb/auth
-  - rsync -az ${TRAVIS_BUILD_DIR}/ $HOME/gopath/src/github.com/ServiceComb/auth/
-  - export TRAVIS_BUILD_DIR=$HOME/gopath/src/github.com/ServiceComb/auth
-  - cd $HOME/gopath/src/github.com/ServiceComb/auth
+  - mkdir -p $HOME/gopath/src/github.com/huaweicse/auth
+  - rsync -az ${TRAVIS_BUILD_DIR}/ $HOME/gopath/src/github.com/huaweicse/auth/
+  - export TRAVIS_BUILD_DIR=$HOME/gopath/src/github.com/huaweicse/auth
+  - cd $HOME/gopath/src/github.com/huaweicse/auth
 
 jobs:
   include:
@@ -36,4 +36,6 @@ jobs:
         - bash -x scripts/travis/goCycloChecker.sh
     - stage: Unit Test
       script:
+        - GO111MODULE=on go get github.com/go-chassis/go-chassis
+        - GO111MODULE=on go mod vendor
         - bash -x scripts/travis/unit_test.sh 
