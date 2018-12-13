@@ -336,15 +336,17 @@ func GetAuthHeaderGeneratorFromCustomAuthInfoQueryers(qs ...AuthInfoQueryer) (*A
 		}
 		openlogging.GetLogger().Debugf("Try to get auth info from default secret from %s", q.Source())
 		_, _, _, err := q.GetAuthInfos()
-		if err == nil {
-			queryer = q
-			ok = true
-			break
+		//Only if auth config not exist, we try next source
+		//otherwise we use this source even if we got error,
+		//as we don't know if the error will appear in subsequent attempts.
+		//That is, we treat the error as recoverable and make periodic trials.
+		if err != nil && IsAuthConfNotExist(err) {
+			openlogging.GetLogger().Debugf("Not found auth info from default secret from %s", q.Source())
+			continue
 		}
-		if !IsAuthConfNotExist(err) {
-			return nil, err
-		}
-		openlogging.GetLogger().Debugf("Not found auth info from default secret from %s", q.Source())
+		queryer = q
+		ok = true
+		break
 	}
 	if ok {
 		h = &AuthHeaderGenerator{

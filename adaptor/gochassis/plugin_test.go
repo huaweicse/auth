@@ -45,16 +45,6 @@ type AKAndShaAKSKVefifier struct {
 	DefaultSecret   string
 }
 
-var AK1 = &AKAndShaAKSKVefifier{
-	Namespace:       "default",
-	Authorization:   `bearer token1`,
-	Token:           `token1`,
-	AK:              `A1111111111111111111`,
-	ShaAKSK:         `d45bc020ae5bb9484f75a0f79472b2487dd6f48853e7d59db3a04fc16ae8751c`,
-	Project:         `cn-north-1`,
-	ImagePullSecret: `{"kind":"Secret","apiVersion":"v1","metadata":{"name":"default-secret","namespace":"default","selfLink":"/api/v1/namespaces/default/secrets/default-secret","uid":"0","resourceVersion":"0","creationTimestamp":"0000-00-00T00:00:00Z"},"data":{".dockerconfigjson":"eyJhdXRocyI6eyIxMDAuMTI1LjAuMTk4OjIwMjAyIjp7ImF1dGgiOiJZMjR0Ym05eWRHZ3RNVUJCTVRFeE1URXhNVEV4TVRFeE1URXhNVEV4TVRwa05EVmlZekF5TUdGbE5XSmlPVFE0TkdZM05XRXdaamM1TkRjeVlqSTBPRGRrWkRabU5EZzROVE5sTjJRMU9XUmlNMkV3Tkdaak1UWmhaVGczTlRGaiJ9LCJzd3IuY24tbm9ydGgtMS5teWh1YXdlaWNsb3VkLmNvbSI6eyJhdXRoIjoiWTI0dGJtOXlkR2d0TVVCQk1URXhNVEV4TVRFeE1URXhNVEV4TVRFeE1UcGtORFZpWXpBeU1HRmxOV0ppT1RRNE5HWTNOV0V3WmpjNU5EY3lZakkwT0Rka1pEWm1ORGc0TlRObE4yUTFPV1JpTTJFd05HWmpNVFpoWlRnM05URmoifX19"},"type":"kubernetes.io/dockerconfigjson"}`,
-	DefaultSecret:   `{"auths":{"127.0.0.1:80":{"auth":"Y24tbm9ydGgtMUBBMTExMTExMTExMTExMTExMTExMTpkNDViYzAyMGFlNWJiOTQ4NGY3NWEwZjc5NDcyYjI0ODdkZDZmNDg4NTNlN2Q1OWRiM2EwNGZjMTZhZTg3NTFj"},"swr.cn-north-1.myhuaweicloud.com":{"auth":"Y24tbm9ydGgtMUBBMTExMTExMTExMTExMTExMTExMTpkNDViYzAyMGFlNWJiOTQ4NGY3NWEwZjc5NDcyYjI0ODdkZDZmNDg4NTNlN2Q1OWRiM2EwNGZjMTZhZTg3NTFj"}}}`,
-}
 var AK2 = &AKAndShaAKSKVefifier{
 	Namespace:       "default",
 	Authorization:   `bearer token2`,
@@ -167,7 +157,8 @@ func TestGetAuthHeaderGeneratorFromCustomAuthInfoQueryers(t *testing.T) {
 	assert.Equal(t, g1.ak, ak)
 
 	//g2 effective
-	testErr := errors.New("test")
+	testErr1 := errors.New("test1")
+	testErr2 := errors.New("test2")
 	g1.err = gochassis.ErrAuthConfNotExist
 	h, err = gochassis.GetAuthHeaderGeneratorFromCustomAuthInfoQueryers(g1, g2)
 	assert.NoError(t, err)
@@ -181,12 +172,16 @@ func TestGetAuthHeaderGeneratorFromCustomAuthInfoQueryers(t *testing.T) {
 	assert.True(t, gochassis.IsAuthConfNotExist(err))
 
 	// CustomAuthInfoQueryers: err, err
-	g2.err = testErr
+	g1.err = testErr1
+	g2.err = testErr2
 	h, err = gochassis.GetAuthHeaderGeneratorFromCustomAuthInfoQueryers(g1, g2)
-	assert.Nil(t, h)
-	assert.Equal(t, testErr, err)
+	assert.NoError(t, err)
+	_, ak, _, err = h.AuthInfoGener.GetAuthInfos()
+	assert.Error(t, err)
+	assert.Equal(t, g1.err, err)
 
 	// CustomAuthInfoQueryers: not exist, not exist
+	g1.err = gochassis.ErrAuthConfNotExist
 	g2.err = gochassis.ErrAuthConfNotExist
 	h, err = gochassis.GetAuthHeaderGeneratorFromCustomAuthInfoQueryers(g1, g2)
 	assert.Nil(t, h)
@@ -197,8 +192,7 @@ func TestGetAuthHeaderGeneratorFromCustomAuthInfoQueryers(t *testing.T) {
 func TestGetAuthHeaderGenerator(t *testing.T) {
 	os.Setenv("PAAS_POD_ID", "a")
 	_, err := gochassis.GetAuthHeaderGenerator()
-	assert.Error(t, err)
-	assert.False(t, gochassis.IsAuthConfNotExist(err))
+	assert.NoError(t, err)
 }
 
 func TestAuthHeaderGenerator_GenAuthHeaders(t *testing.T) {
