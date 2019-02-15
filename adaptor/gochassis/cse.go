@@ -10,16 +10,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/huaweicse/auth"
-
+	"github.com/go-chassis/foundation/httpclient"
+	security2 "github.com/go-chassis/foundation/security"
 	"github.com/go-chassis/go-archaius"
 	"github.com/go-chassis/go-chassis/bootstrap"
 	"github.com/go-chassis/go-chassis/core/common"
 	"github.com/go-chassis/go-chassis/core/config"
 	"github.com/go-chassis/go-chassis/core/config/model"
-	"github.com/go-chassis/go-chassis/pkg/httpclient"
 	"github.com/go-chassis/go-chassis/security"
 	"github.com/go-mesh/openlogging"
+	"github.com/huaweicse/auth"
 	"gopkg.in/yaml.v2"
 )
 
@@ -69,7 +69,7 @@ func loadPaasAuth() error {
 	return nil
 }
 
-func getAkskCustomCipher(name string) (security.Cipher, error) {
+func getAkskCustomCipher(name string) (security2.Cipher, error) {
 	f, err := security.GetCipherNewFunc(name)
 	if err != nil {
 		return nil, err
