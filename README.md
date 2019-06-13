@@ -1,11 +1,17 @@
-# Authentication Plugin for Go-Chassis
+# huawei cloud auth 
 [![Build Status](https://travis-ci.org/ServiceComb/auth.svg?branch=master)](https://travis-ci.org/ServiceComb/auth)
-This plugin provides the authentication mechanism for Huawei Public Cloud.
+This provides the authentication mechanism for Huawei Public Cloud.
 The authentication mechanism can be either AK/SK based or token based.
-Based on the type this plugin appends the signed auth token or AK/SK in the header of 
-each request. The api's of Service-Center, Config-Center and Monitoring Server of
-Huawei Public Cloud needs authentication so this plugins adds the auth header for 
-these api's.
+
+# how to use 
+```go
+sign, err := auth.GetSignFunc(ak, sk, project)
+req, err := http.NewRequest("GET", "cce.cn-north-1.myhuaweicloud.com", nil)
+err = sign(r)
+resp, err := client.Do(req)
+```
+
+
 
 # how to use in go chassis 
 1.You can specify the AK/SK in the auth.yaml of Go-Chassis  
@@ -13,8 +19,6 @@ these api's.
 cse.credentials.accessKey
 cse.credentials.secretKey
 ```
-
-
 2.Import in your main.go before other imports
 ```go
 import _ "github.com/huaweicse/auth/adaptor/gochassis"
