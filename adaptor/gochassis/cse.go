@@ -34,17 +34,11 @@ const (
 	keyProject = "cse.credentials.project"
 )
 
-//IsAuthConfNotExist judges whether an error is equal to ErrAuthConfNotExist
-func IsAuthConfNotExist(e error) bool {
-	return e == ErrAuthConfNotExist
-}
-
-//ErrAuthConfNotExist means the auth config not exist
-var ErrAuthConfNotExist = errors.New("auth config is not exist")
-
-// loadAkskAuth gets the Authentication Mode ak/sk, token and forms required Auth Headers
-func loadPaasAuth() error {
-	h, err := GetAuthHeaderGenerator()
+// loadPaaSAuth gets the Authentication Mode ak/sk, token and forms required Auth Headers
+func loadPaaSAuth() error {
+	h, err := auth.GetAuthHeaderGenerator(
+		auth.NewServiceStageRetriever(),
+		auth.NewCCERetriever())
 	if err != nil {
 		return err
 	}
@@ -134,7 +128,7 @@ func getAkskConfig() (*model.CredentialStruct, error) {
 		c = &(globalConf.Cse.Credentials)
 	}
 	if c.AccessKey == "" && c.SecretKey == "" {
-		return nil, ErrAuthConfNotExist
+		return nil, auth.ErrAuthConfNotExist
 	}
 	if c.AccessKey == "" || c.SecretKey == "" {
 		return nil, errors.New("ak or sk is empty")
@@ -198,17 +192,17 @@ func Init() error {
 		openlogging.GetLogger().Warn("Huawei Cloud auth mode: AKSK, AKSK source: chassis config")
 		return nil
 	}
-	if !IsAuthConfNotExist(err) {
+	if err != auth.ErrAuthConfNotExist {
 		openlogging.GetLogger().Errorf("Load AKSK failed: %s", err)
 		return err
 	}
 
-	err = loadPaasAuth()
+	err = loadPaaSAuth()
 	if err == nil {
 		openlogging.GetLogger().Warn("Huawei Cloud auth mode: AKSK, AKSK source: default secret")
 		return nil
 	}
-	if !IsAuthConfNotExist(err) {
+	if err != auth.ErrAuthConfNotExist {
 		openlogging.GetLogger().Errorf("Get AKSK auth from default secret failed: %s", err)
 		return err
 	}

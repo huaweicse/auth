@@ -11,17 +11,11 @@ import (
 	"github.com/go-chassis/go-chassis/core/common"
 	"github.com/go-chassis/go-chassis/core/config"
 	"github.com/go-chassis/go-chassis/core/config/model"
-	"github.com/go-chassis/go-chassis/core/lager"
 	_ "github.com/go-chassis/go-chassis/security/plugins/aes"
 	_ "github.com/go-chassis/go-chassis/security/plugins/plain"
 	"github.com/huaweicse/auth"
 	"github.com/stretchr/testify/assert"
 )
-
-func Test_IsAuthConfNotExist(t *testing.T) {
-	err := ErrAuthConfNotExist
-	assert.True(t, IsAuthConfNotExist(err))
-}
 
 func testWriteFile(t *testing.T, name string, ak, sk, project, cipher string) {
 	contentFormat := `---
@@ -37,11 +31,6 @@ cse:
 	assert.NoError(t, err)
 	defer f.Close()
 	_, err = f.WriteString(content)
-	assert.NoError(t, err)
-}
-
-func testLoadAkskAuth(t *testing.T) {
-	err := loadAkskAuth()
 	assert.NoError(t, err)
 }
 
@@ -102,17 +91,18 @@ func Test_loadAkskAuth(t *testing.T) {
 		}
 	}
 
-	lager.Initialize("", "INFO", "", "size", true, 1, 10, 7)
 	config.InitArchaius()
 	config.GlobalDefinition = &model.GlobalCfg{}
 	config.GlobalDefinition.Cse.Service.Registry.Address = uriWithProjectCnNorth
-	testLoadAkskAuth(t)
+	err = loadAkskAuth()
+	assert.NoError(t, err)
 	testCheckAkAndProject(t, ak, project)
 
 	t.Log("Get aksk config from CIPHER_ROOT/certificate.yaml")
 	ak, sk, project, cipherName = "a1", "s1", "p1", ""
 	testWriteFile(t, credentialFilePath, ak, sk, project, cipherName)
-	testLoadAkskAuth(t)
+	err = loadAkskAuth()
+	assert.NoError(t, err)
 	testCheckAkAndProject(t, ak, project)
 
 	t.Log("One of ak and sk is empty")
@@ -121,7 +111,7 @@ func Test_loadAkskAuth(t *testing.T) {
 	testWriteFile(t, credentialFilePath, ak, sk, project, cipherName)
 	err = loadAkskAuth()
 	assert.Error(t, err)
-	assert.False(t, IsAuthConfNotExist(err))
+	assert.NotEqual(t, auth.ErrAuthConfNotExist, err)
 	testAuthNotLoaded(t)
 
 	t.Log("Ak sk not exists")
@@ -130,13 +120,14 @@ func Test_loadAkskAuth(t *testing.T) {
 	testWriteFile(t, credentialFilePath, ak, sk, project, cipherName)
 	err = loadAkskAuth()
 	assert.Error(t, err)
-	assert.True(t, IsAuthConfNotExist(err))
+	assert.Equal(t, auth.ErrAuthConfNotExist, err)
 	testAuthNotLoaded(t)
 
 	t.Log("AkskCustomCipher exists")
 	ak, sk, project, cipherName = "a4", "s4", "p4", "default"
 	testWriteFile(t, credentialFilePath, ak, sk, project, cipherName)
-	testLoadAkskAuth(t)
+	err = loadAkskAuth()
+	assert.NoError(t, err)
 	testCheckAkAndProject(t, ak, project)
 
 	t.Log("AkskCustomCipher not exists")
@@ -145,13 +136,14 @@ func Test_loadAkskAuth(t *testing.T) {
 	testWriteFile(t, credentialFilePath, ak, sk, project, cipherName)
 	err = loadAkskAuth()
 	assert.Error(t, err)
-	assert.False(t, IsAuthConfNotExist(err))
+	assert.NotEqual(t, auth.ErrAuthConfNotExist, err)
 	testAuthNotLoaded(t)
 
 	t.Log("Get project from uri")
 	ak, sk, project, cipherName = "a6", "s6", "", ""
 	testWriteFile(t, credentialFilePath, ak, sk, project, cipherName)
-	testLoadAkskAuth(t)
+	err = loadAkskAuth()
+	assert.NoError(t, err)
 	testCheckAkAndProject(t, ak, "cn-north-1")
 
 	t.Log("Cse uri invalid")
@@ -161,19 +153,21 @@ func Test_loadAkskAuth(t *testing.T) {
 	config.GlobalDefinition.Cse.Service.Registry.Address = ":://a+b"
 	err = loadAkskAuth()
 	assert.Error(t, err)
-	assert.False(t, IsAuthConfNotExist(err))
+	assert.NotEqual(t, auth.ErrAuthConfNotExist, err)
 	testAuthNotLoaded(t)
 
 	t.Log("Get project from config")
 	ak, sk, project, cipherName = "a9", "s9", "p9", ""
 	testWriteFile(t, credentialFilePath, ak, sk, project, cipherName)
-	testLoadAkskAuth(t)
+	err = loadAkskAuth()
+	assert.NoError(t, err)
 	testCheckAkAndProject(t, ak, project)
 
 	t.Log("Use default project")
 	config.GlobalDefinition.Cse.Service.Registry.Address = "http://cse:8080"
 	ak, sk, project, cipherName = "a10", "s10", "", ""
 	testWriteFile(t, credentialFilePath, ak, sk, project, cipherName)
-	testLoadAkskAuth(t)
+	err = loadAkskAuth()
+	assert.NoError(t, err)
 	testCheckAkAndProject(t, ak, common.DefaultValue)
 }

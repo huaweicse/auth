@@ -1,4 +1,4 @@
-package gochassis_test
+package auth_test
 
 import (
 	"errors"
@@ -12,16 +12,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/huaweicse/auth/adaptor/gochassis"
 	"github.com/stretchr/testify/assert"
 )
 
 type AKHandler struct {
-	AK *AKAndShaAKSKVefifier
+	AK *AKAndShaAKSKVerifier
 }
 
 func (a *AKHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get(gochassis.HeaderAuthorization) != AK2.Authorization {
+	if r.Header.Get(auth.HeaderAuthorization) != AK2.Authorization {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("token error"))
 		return
@@ -30,11 +29,11 @@ func (a *AKHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(a.AK.ImagePullSecret))
 }
 
-func (a *AKHandler) SetAK(newAK *AKAndShaAKSKVefifier) {
+func (a *AKHandler) SetAK(newAK *AKAndShaAKSKVerifier) {
 	a.AK = newAK
 }
 
-type AKAndShaAKSKVefifier struct {
+type AKAndShaAKSKVerifier struct {
 	Namespace       string
 	Authorization   string
 	Token           string
@@ -45,7 +44,7 @@ type AKAndShaAKSKVefifier struct {
 	DefaultSecret   string
 }
 
-var AK2 = &AKAndShaAKSKVefifier{
+var AK2 = &AKAndShaAKSKVerifier{
 	Namespace:       "default",
 	Authorization:   `bearer token2`,
 	Token:           `token2`,
@@ -58,12 +57,12 @@ var AK2 = &AKAndShaAKSKVefifier{
 
 func TestAuthInfoQueryerFromCCE_GetAuthInfos(t *testing.T) {
 	t.Log("Not in CCE")
-	queryerFromCCE := gochassis.GetAuthInfoQueryerFromCCE()
+	queryerFromCCE := auth.NewCCERetriever()
 	for _, v := range queryerFromCCE.EnvIdentifiers {
 		os.Unsetenv(v)
 	}
-	_, _, _, err := queryerFromCCE.GetAuthInfos()
-	assert.True(t, gochassis.IsAuthConfNotExist(err))
+	_, _, _, err := queryerFromCCE.GetAuthInfo()
+	assert.Equal(t, auth.ErrAuthConfNotExist, err)
 
 	t.Log("In CCE")
 	os.Setenv("PAAS_CLUSTER_ID", "1")
@@ -92,9 +91,9 @@ func TestAuthInfoQueryerFromCCE_GetAuthInfos(t *testing.T) {
 	s := httptest.NewTLSServer(mux)
 	defer s.Close()
 	parts := strings.Split(s.Listener.Addr().String(), ":")
-	os.Setenv(gochassis.EnvKubernetesServiceHost, parts[0])
-	os.Setenv(gochassis.EnvKubernetesServicePort, parts[1])
-	project, ak, shaAkSk, err := queryerFromCCE.GetAuthInfos()
+	os.Setenv(auth.EnvKubernetesServiceHost, parts[0])
+	os.Setenv(auth.EnvKubernetesServicePort, parts[1])
+	project, ak, shaAkSk, err := queryerFromCCE.GetAuthInfo()
 	assert.NoError(t, err)
 	assert.Equal(t, AK2.AK, ak)
 	assert.Equal(t, AK2.ShaAKSK, shaAkSk)
@@ -103,17 +102,17 @@ func TestAuthInfoQueryerFromCCE_GetAuthInfos(t *testing.T) {
 
 func TestAuthInfoQueryerFromServiceStage(t *testing.T) {
 	t.Log("ServiceStage mount file not exist")
-	q := gochassis.GetAuthInfoQueryerFromServiceStage()
+	q := auth.NewServiceStageRetriever()
 	q.MountPath = filepath.Join(os.Getenv("GOPATH"), "test", "auth", "secret")
 	err := os.MkdirAll(q.MountPath, 0700)
 	assert.NoError(t, err)
 	os.Remove(filepath.Join(q.MountPath, q.File))
-	_, _, _, err = q.GetAuthInfos()
-	assert.True(t, gochassis.IsAuthConfNotExist(err))
+	_, _, _, err = q.GetAuthInfo()
+	assert.Equal(t, auth.ErrAuthConfNotExist, err)
 
 	t.Log("ServiceStage mount file exist")
 	err = ioutil.WriteFile(filepath.Join(q.MountPath, q.File), []byte(AK2.DefaultSecret), 0700)
-	project, ak, shaAkSk, err := q.GetAuthInfos()
+	project, ak, shaAkSk, err := q.GetAuthInfo()
 	assert.NoError(t, err)
 	assert.Equal(t, AK2.AK, ak)
 	assert.Equal(t, AK2.ShaAKSK, shaAkSk)
@@ -127,7 +126,7 @@ type mockAuthInfoGenerator struct {
 	n    int
 }
 
-func (m *mockAuthInfoGenerator) GetAuthInfos() (string, string, string, error) {
+func (m *mockAuthInfoGenerator) GetAuthInfo() (string, string, string, error) {
 	if m.err != nil {
 		return "", "", "", m.err
 	}
@@ -135,7 +134,7 @@ func (m *mockAuthInfoGenerator) GetAuthInfos() (string, string, string, error) {
 	return m.ak, m.ak, m.ak, nil
 }
 
-func (m *mockAuthInfoGenerator) Source() string {
+func (m *mockAuthInfoGenerator) Name() string {
 	return m.name
 }
 
@@ -150,48 +149,48 @@ func TestGetAuthHeaderGeneratorFromCustomAuthInfoQueryers(t *testing.T) {
 		ak:   "2",
 		name: "2",
 	}
-	h, err := gochassis.GetAuthHeaderGeneratorFromCustomAuthInfoQueryers(g1, g2)
+	h, err := auth.GetAuthHeaderGenerator(g1, g2)
 	assert.NoError(t, err)
-	_, ak, _, err := h.AuthInfoGener.GetAuthInfos()
+	_, ak, _, err := h.Retriever.GetAuthInfo()
 	assert.NoError(t, err)
 	assert.Equal(t, g1.ak, ak)
 
 	//g2 effective
 	testErr1 := errors.New("test1")
 	testErr2 := errors.New("test2")
-	g1.err = gochassis.ErrAuthConfNotExist
-	h, err = gochassis.GetAuthHeaderGeneratorFromCustomAuthInfoQueryers(g1, g2)
+	g1.err = auth.ErrAuthConfNotExist
+	h, err = auth.GetAuthHeaderGenerator(g1, g2)
 	assert.NoError(t, err)
-	_, ak, _, err = h.AuthInfoGener.GetAuthInfos()
+	_, ak, _, err = h.Retriever.GetAuthInfo()
 	assert.NoError(t, err)
 	assert.Equal(t, g2.ak, ak)
 
 	// CustomAuthInfoQueryers: nil, nil
-	h, err = gochassis.GetAuthHeaderGeneratorFromCustomAuthInfoQueryers(nil, nil)
+	h, err = auth.GetAuthHeaderGenerator(nil, nil)
 	assert.Nil(t, h)
-	assert.True(t, gochassis.IsAuthConfNotExist(err))
+	assert.Equal(t, auth.ErrAuthConfNotExist, err)
 
 	// CustomAuthInfoQueryers: err, err
 	g1.err = testErr1
 	g2.err = testErr2
-	h, err = gochassis.GetAuthHeaderGeneratorFromCustomAuthInfoQueryers(g1, g2)
+	h, err = auth.GetAuthHeaderGenerator(g1, g2)
 	assert.NoError(t, err)
-	_, ak, _, err = h.AuthInfoGener.GetAuthInfos()
+	_, ak, _, err = h.Retriever.GetAuthInfo()
 	assert.Error(t, err)
 	assert.Equal(t, g1.err, err)
 
 	// CustomAuthInfoQueryers: not exist, not exist
-	g1.err = gochassis.ErrAuthConfNotExist
-	g2.err = gochassis.ErrAuthConfNotExist
-	h, err = gochassis.GetAuthHeaderGeneratorFromCustomAuthInfoQueryers(g1, g2)
+	g1.err = auth.ErrAuthConfNotExist
+	g2.err = auth.ErrAuthConfNotExist
+	h, err = auth.GetAuthHeaderGenerator(g1, g2)
 	assert.Nil(t, h)
-	assert.True(t, gochassis.IsAuthConfNotExist(err))
+	assert.Equal(t, auth.ErrAuthConfNotExist, err)
 }
 
 //integration test
 func TestGetAuthHeaderGenerator(t *testing.T) {
 	os.Setenv("PAAS_POD_ID", "a")
-	_, err := gochassis.GetAuthHeaderGenerator()
+	_, err := auth.GetAuthHeaderGenerator(auth.NewServiceStageRetriever(), auth.NewCCERetriever())
 	assert.NoError(t, err)
 }
 
@@ -202,7 +201,7 @@ func TestAuthHeaderGenerator_GenAuthHeaders(t *testing.T) {
 	q1 := mockAuthInfoGenerator{
 		ak: akA,
 	}
-	g, err := gochassis.GetAuthHeaderGeneratorFromCustomAuthInfoQueryers(&q1)
+	g, err := auth.GetAuthHeaderGenerator(&q1)
 	assert.NoError(t, err)
 	g.RefreshInterval = 100 * time.Millisecond
 	header := g.GenAuthHeaders()
