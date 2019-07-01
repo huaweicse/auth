@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"encoding/json"
-	"github.com/go-chassis/auth"
 	"github.com/go-mesh/openlogging"
 )
 
@@ -137,16 +136,16 @@ func (h *HeaderGenerator) createAuthHeaders() {
 	}
 
 	//if AK/ShaAKSK/project not changed, will not update
-	if project == h.defaultAuthHeaders.Get(auth.HeaderServiceProject) &&
-		ak == h.defaultAuthHeaders.Get(auth.HeaderServiceAk) &&
-		shaAkSk == h.defaultAuthHeaders.Get(auth.HeaderServiceShaAKSK) {
+	if project == h.defaultAuthHeaders.Get(HeaderServiceProject) &&
+		ak == h.defaultAuthHeaders.Get(HeaderServiceAk) &&
+		shaAkSk == h.defaultAuthHeaders.Get(HeaderServiceShaAKSK) {
 		return
 	}
 	openlogging.GetLogger().Infof("New AK: %s, from %s", ak, h.Retriever.Name())
 	authHeaders = make(http.Header)
-	authHeaders.Set(auth.HeaderServiceProject, project)
-	authHeaders.Set(auth.HeaderServiceAk, ak)
-	authHeaders.Set(auth.HeaderServiceShaAKSK, shaAkSk)
+	authHeaders.Set(HeaderServiceProject, project)
+	authHeaders.Set(HeaderServiceAk, ak)
+	authHeaders.Set(HeaderServiceShaAKSK, shaAkSk)
 
 	h.defaultAuthHeaders = authHeaders
 }
