@@ -55,11 +55,11 @@ type KubeSecretsData struct {
 
 //DockerConfig is a tenant's default secret in json format
 type DockerConfig struct {
-	Auths map[string]AuthData `json:"auths"`
+	Auths map[string]Data `json:"auths"`
 }
 
-//AuthData is the base64 format of AK/SHAAKSK/PROJECT
-type AuthData struct {
+//Data is the base64 format of AK/SHAAKSK/PROJECT
+type Data struct {
 	Auth string `json:"auth"`
 }
 

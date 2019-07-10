@@ -211,5 +211,5 @@ func Init() error {
 }
 
 func init() {
-	bootstrap.InstallPlugin("huaweiauth", bootstrap.BootstrapFunc(Init))
+	bootstrap.InstallPlugin("huaweiauth", bootstrap.Func(Init))
 }
