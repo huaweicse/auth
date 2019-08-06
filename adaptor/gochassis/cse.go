@@ -27,7 +27,6 @@ const (
 	paasProjectNameEnv = "PAAS_PROJECT_NAME"
 	cipherRootEnv      = "CIPHER_ROOT"
 	keytoolAkskFile    = "certificate.yaml"
-	keytoolCipher      = "security"
 
 	keyAK      = "cse.credentials.accessKey"
 	keySK      = "cse.credentials.secretKey"
@@ -161,15 +160,10 @@ func loadAkskAuth() error {
 	if err != nil {
 		return err
 	}
-	openlogging.GetLogger().Infof("Huawei cloud auth AK: %s, project: %s", c.AccessKey, c.Project)
-
+	openlogging.GetLogger().Infof("huawei cloud auth AK: %s, project: %s", c.AccessKey, c.Project)
 	plainSk := c.SecretKey
 	cipher := c.AkskCustomCipher
 	if cipher != "" {
-		if cipher == keytoolCipher {
-			openlogging.GetLogger().Infof("Use cipher plugin [aes] as plugin [%s]", cipher)
-			cipher = "aes"
-		}
 		cipherPlugin, err := getAkskCustomCipher(cipher)
 		if err != nil {
 			return err
