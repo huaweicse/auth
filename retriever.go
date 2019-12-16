@@ -141,7 +141,7 @@ func (h *HeaderGenerator) createAuthHeaders() {
 		shaAkSk == h.defaultAuthHeaders.Get(HeaderServiceShaAKSK) {
 		return
 	}
-	openlogging.GetLogger().Infof("New AK: %s, from %s", ak, h.Retriever.Name())
+	openlogging.GetLogger().Infof("read credential from %s", h.Retriever.Name())
 	authHeaders = make(http.Header)
 	authHeaders.Set(HeaderServiceProject, project)
 	authHeaders.Set(HeaderServiceAk, ak)
